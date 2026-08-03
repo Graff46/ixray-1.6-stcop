@@ -333,6 +333,7 @@ void CUILines::ParseText(bool force)
 
 float CUILines::GetVisibleHeight()
 {
+	if (!m_pFont) return 0.f;
 
 	if (uFlags.test(flComplexMode))
 	{
