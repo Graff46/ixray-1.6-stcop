@@ -120,13 +120,12 @@ void CLevelChanger::feel_touch_new (CObject *tpObject)
 			return;
 	}
 
-	CActor*			l_tpActor = smart_cast<CActor*>(tpObject);
+	CActor*			l_tpActor = tpObject != nullptr ? tpObject->cast_actor() : nullptr;
 	VERIFY			(l_tpActor);
 	if (!l_tpActor->g_Alive())
 		return;
-	}
 
-	if (m_ini_file && m_ini_file->section_exist("cond"))
+	if ((m_ini_file) && (m_ini_file->section_exist("cond")))
 	{
 		LPCSTR p_name = m_ini_file->r_string("cond", "infop");
 		
@@ -143,9 +142,7 @@ void CLevelChanger::feel_touch_new (CObject *tpObject)
 		}
 	}
 
-	CActor* l_tpActor = tpObject != nullptr ? tpObject->cast_actor() : nullptr;
-	VERIFY(l_tpActor);
-	if (!l_tpActor->g_Alive())
+	if ((!l_tpActor) || (!l_tpActor->g_Alive()))
 	{
 		return;
 	}
