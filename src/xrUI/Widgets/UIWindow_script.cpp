@@ -83,6 +83,11 @@ void SetCursorPosition_script(Fvector2& pos)
 {
 	GetUICursor().SetUICursorPosition(pos);
 }
+
+static CGameFont* GetFontID(LPCSTR FontName)
+{
+	return UI().Font().GetFont(FontName);
+}
 using namespace luabind;
 #pragma optimize("s",on)
 void CUIWindow::script_register(lua_State *L)
@@ -93,6 +98,7 @@ void CUIWindow::script_register(lua_State *L)
 		def("GetFontSmall",				&GetFontSmall),
 		def("GetFontMedium",			&GetFontMedium),
 		def("GetFontDI",				&GetFontDI),
+		def("GetFontID",				&GetFontID),
 		def("GetFontArial14",				&ui_font_arial_14			),
 		def("GetFontArial21",				&ui_font_arial_21			),
 		def("GetFontGraffiti19Russian",		&ui_font_graffiti19_russian	),
