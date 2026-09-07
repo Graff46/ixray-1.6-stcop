@@ -1406,16 +1406,6 @@ void CWeapon::OnHiddenItem ()
 
 bool CWeapon::SendDeactivateItem(bool Force)
 {
-	if (GetState() == eFire)
-	{
-		if (!Force)
-		{
-			return false;
-		}
-
-		FireEnd();
-	}
-
 	return inherited::SendDeactivateItem(Force);
 }
 
@@ -1801,7 +1791,7 @@ void CWeapon::UpdatePosition(const Fmatrix& trans)
 	else
 		XFORM().mul(trans, m_Offset);
 
-	VERIFY				(!fis_zero(DET(renderable.xform)));
+	VERIFY(!fis_zero(DET(renderable.xform)));
 }
 
 void CWeapon::UpdatePosition_alt(const Fmatrix& trans) {
@@ -1873,8 +1863,9 @@ bool CWeapon::Action(u16 cmd, u32 flags)
 			if (!IsPending() && GetState() == eIdle && !IsZoomed())
 			{
 				SwitchState(eKick);
-				return true;
 			}
+
+			return true;
 		}break;
 		case kWPN_ZOOM:
 		{
@@ -2425,6 +2416,11 @@ bool CWeapon::SilencerAttachable()
 
 void CWeapon::UpdateScopePosition()
 {
+	if (bUseAltScope)
+	{
+		return;
+	}
+
 	auto HID = HudItemData();
 
 	if (HID != nullptr && ScopeAttachable())
@@ -2728,12 +2724,12 @@ bool CWeapon::CanAimNow()
 
 	bool result = true;
 
-	CCustomDevice* pDevice = pActor->GetDevice();
+	CCustomDevice* pDevice = pActor->GetDevice(true);
 
-	if (pDevice != nullptr)
+	if (pDevice)
 	{
-		u32 state = pDevice->GetState();
-		result = !!(state == CCustomDevice::eIdle || state == CCustomDevice::EDeviceStates::eHandAimStart || state == CCustomDevice::EDeviceStates::eHandAimEnd);
+		u32 state = pDevice->GetNextState();
+		result = pDevice->IsHidden() && !pDevice->NeedActivation() || !!(state == CCustomDevice::eIdle || state == CCustomDevice::EDeviceStates::eHandAimStart || state == CCustomDevice::EDeviceStates::eHandAimEnd);
 	}
 
 	if (m_eAnimationsFlags.test(EAnimationsFlags::af_sprint_in_out) && (pActor->GetMovementState(ACTOR_DEFS::EMovementStates::eReal) & ACTOR_DEFS::EMoveCommand::mcSprint || GetState() == eSprintStart || GetState() == eSprintEnd || m_bSwitchSprint))
@@ -2749,7 +2745,7 @@ bool CWeapon::CanAimNow()
 
 			if (IsScopeAttached())
 			{
-				sect = ScopeAttachable() ? GetScopeName() : cNameSect();
+				sect = ScopeAttachable() ? GetCurrentScopeSection() : cNameSect();
 			}
 
 			if (READ_IF_EXISTS(pSettings, r_bool, sect, "prohibit_aim_for_grenade_mode", false))
@@ -3502,7 +3498,8 @@ float CWeapon::Weight() const
 extern bool hud_adj_crosshair;
 bool CWeapon::show_crosshair()
 {
-	return (!IsPending() || GetState() == eEmptyClick || GetState() == eSprintStart || GetState() == eSprintEnd) && ((!IsZoomed() || !ZoomHideCrosshair()) || hud_adj_crosshair);
+	const u8 NextState = GetNextState();
+	return hud_adj_crosshair || !m_bTacticalLaserStatus && (!IsPending() || NextState == eEmptyClick || NextState == eSprintStart || NextState == eSprintEnd) && NextState != eHidden && (!IsZoomed() || !ZoomHideCrosshair());
 }
 
 bool CWeapon::show_indicators()
@@ -3617,17 +3614,17 @@ void CWeapon::SetSilencerY(int value)
 
 bool CWeapon::NeedBlockSprint() const
 {
-	u32 state = GetState();
-	const static bool isDelayedWeaponActions = EngineExternal()[EEngineExternalGame::EnableDelayedWeaponActions];
+	const u8 State = GetState();
+	const static bool IsDelayedWeaponActions = EngineExternal()[EEngineExternalGame::EnableDelayedWeaponActions];
 
-	if (isDelayedWeaponActions)
+	if (IsDelayedWeaponActions)
 	{
-		return state != eIdle && state != eSprintStart || m_bIsAimAnimationPlaying;
+		return State != eIdle && State != eSprintStart && State != eSprintEnd || m_bIsAimAnimationPlaying;
 	}
 
-	const static bool isBlockSprintInReload = EngineExternal()[EEngineExternalGame::EnableBlockSprintInReload];
+	const static bool IsBlockSprintInReload = EngineExternal()[EEngineExternalGame::EnableBlockSprintInReload];
 
-	return state == eFire || state == eFire2 || state == eSprintEnd || isBlockSprintInReload && state == eReload || m_bIsAimAnimationPlaying;
+	return State == eFire || State == eFire2 || State == eKick || IsBlockSprintInReload && State == eReload || m_bIsAimAnimationPlaying;
 }
 
 void CWeapon::render_hud_mode()
@@ -4205,13 +4202,15 @@ void CWeapon::UpdateCollimatorSight()
 
 u32 CWeapon::FakeReload()
 {
+	const u32 MagCapacity = GetMagCapacity();
+
 	if (unlimited_ammo())
 	{
-		return GetMagCapacity();
+		return MagCapacity;
 	}
 
-	u32 in_box = GetAmmoCount(GetTargetAmmoType(IsGrenadeMode())) + iAmmoElapsed;
-	return clampr(in_box, (u32)0, (u32)iMagazineSize);
+	const u32 InBox = GetAmmoCount(GetTargetAmmoType(IsGrenadeMode())) + iAmmoElapsed;
+	return clampr(InBox, 0u, MagCapacity);
 }
 
 void CWeapon::OnMotionMark(u32 state, const motion_marks& mark)

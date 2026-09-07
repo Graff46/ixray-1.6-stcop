@@ -72,6 +72,14 @@ __IX-Ray__ is fork of __X-Ray 1.6__ engine that aims to improve gaming experienc
 
 Common purposes of the project is improving developer and gaming experience, fixing a lot of bugs of the original engine and extending support for new features
 
+## Support the Project
+
+If you like this project, you can support its development on Boosty. Subscribe to get exclusive content and participate in project development polls!
+
+We would also appreciate a Star on the repository!
+
+[![Boosty](https://img.shields.io/badge/Support%20on-Boosty-F15F2C?style=flat-square&logo=boosty&logoColor=white)](https://boosty.to/ixray_platform)
+
 ## Quick start
 
 Latest release of the engine can be downloaded on the [releases page](https://github.com/ixray-team/ixray-1.6-stcop/releases)
@@ -80,8 +88,8 @@ Latest release of the engine can be downloaded on the [releases page](https://gi
 
 | Platform | Build | System | Files | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| Call of Pripyat | Gamer | Windows x64 | [Engine+Assets](https://github.com/ixray-team/ixray-1.6-stcop/releases/download/r1.3.4/ixray-1.6-r1.3.4-engine-x64-game.zip) | Ready-made engine build for players or necessary for the release of modifications. Archive contains the engine and assets for running the game |
-| Call of Pripyat | Developer | Windows x64 | [Engine+Assets](https://github.com/ixray-team/ixray-1.6-stcop/releases/download/r1.3.4/ixray-1.6-r1.3.4-engine-x64-develop.zip) | Ready-made engine build for developers, necessary for convenient modification development. Archive contains the engine and assets for launching the game |
+| Call of Pripyat | Gamer | Windows x64 | [Engine+Assets](https://github.com/ixray-team/ixray-1.6-stcop/releases/download/r1.3.5/ixray-1.6-r1.3.5-engine-x64-game-cop.zip) | Ready-made engine build for players or necessary for the release of modifications. Archive contains the engine and assets for running the game |
+| Call of Pripyat | Developer | Windows x64 | [Engine+Assets](https://github.com/ixray-team/ixray-1.6-stcop/releases/download/r1.3.5/ixray-1.6-r1.3.5-engine-x64-develop-cop.zip) | Ready-made engine build for developers, necessary for convenient modification development. Archive contains the engine and assets for launching the game |
 
 You can read about the differences in [FAQ](https://github.com/ixray-team/ixray-1.6-stcop/blob/default/doc/faq.md#what-is-the-difference-between-the-game-player-and-developer-builds)
 

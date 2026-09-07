@@ -600,9 +600,9 @@ void weapon_inertion::Load(const shared_str& section, bool is_16x9)
 	aim_move_crouch_factor = READ_IF_EXISTS(pSettings, r_float, section, "hud_aim_move_crouch_factor", 1.0f);
 	aim_move_slow_factor = READ_IF_EXISTS(pSettings, r_float, section, "hud_aim_move_slow_factor", 1.0f);
 
-	aim_move_slow_crouch_factor = READ_IF_EXISTS(pSettings, r_float, section, "hud_move_slow_crouch_factor", 1.0f);
-	aim_move_crouch_factor = READ_IF_EXISTS(pSettings, r_float, section, "hud_move_crouch_factor", 1.0f);
-	aim_move_slow_factor = READ_IF_EXISTS(pSettings, r_float, section, "hud_move_slow_factor", 1.0f);
+	move_slow_crouch_factor = READ_IF_EXISTS(pSettings, r_float, section, "hud_move_slow_crouch_factor", 1.0f);
+	move_crouch_factor = READ_IF_EXISTS(pSettings, r_float, section, "hud_move_crouch_factor", 1.0f);
+	move_slow_factor = READ_IF_EXISTS(pSettings, r_float, section, "hud_move_slow_factor", 1.0f);
 
 	no_other_hud_moving_while_suicide = READ_IF_EXISTS(pSettings, r_bool, section, "no_other_hud_moving_while_suicide", false);
 
@@ -777,6 +777,12 @@ u32 attachable_hud_item::anim_play(const shared_str& anm_name_b, EHudMixType bMi
 	
 	rnd_idx					= (u8)Random.randI(anm->m_animations.size()) ;
 	const motion_descr& M	= anm->m_animations[ rnd_idx ];
+
+	if (anm->m_animations.size() == 1)
+	{
+		rnd_idx = u8(-1);
+	}
+
 	float speed = anm->m_anim_speed;
 
 	bool need_mix_hands = bMixIn >= EHudMixType::eMixHands;
@@ -803,20 +809,16 @@ u32 attachable_hud_item::anim_play(const shared_str& anm_name_b, EHudMixType bMi
 	{
 		CActor* current_actor = static_cast<CActor*>(Level().CurrentControlEntity());
 		VERIFY(current_actor);
-		CEffectorCam* ec = current_actor->Cameras().GetCamEffector(eCEWeaponAction);
-		if (m_attach_place_idx == 1 && ec == nullptr || m_attach_place_idx == 0)
+
+		if (m_attach_place_idx == 1 && g_player_hud->attached_item(0) == nullptr || m_attach_place_idx == 0)
 		{
 			string_path ce_path;
 			string_path anm_name;
 			xr_strconcat(anm_name, "camera_effects\\weapon\\", M.name.c_str(), ".anm");
 			if (FS.exist(ce_path, "$game_anims$", anm_name))
 			{
-				if (ec)
-				{
-					current_actor->Cameras().RemoveCamEffector(eCEWeaponAction);
-				}
 				CAnimatorCamEffector* e = new CAnimatorCamEffector();
-				e->SetType(eCEWeaponAction);
+				e->SetType(ECamEffectorType(Random.randI(29999, 31999)));
 				e->SetHudAffect(false);
 				e->SetCyclic(false);
 				e->Start(anm_name);

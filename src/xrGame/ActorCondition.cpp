@@ -14,7 +14,7 @@
 #include "game_object_space.h"
 #include "object_broker.h"
 #include "Weapon.h"
-
+#include "ActorHelmet.h"
 #include "PDA.h"
 #include "ai/monsters/basemonster/base_monster.h"
 #include "UIGameCustom.h"
@@ -797,17 +797,17 @@ void CActorCondition::BoostParameters(const SBooster& B)
 	}
 	case eBoostRadiationProtection:
 	{
-		m_fBoostRadiationImmunity = B.fBoostValue;
+		m_fBoostRadiationProtection = B.fBoostValue;
 		break;
 	}
 	case eBoostTelepaticProtection:
 	{
-		m_fBoostTelepaticImmunity = B.fBoostValue;
+		m_fBoostTelepaticProtection = B.fBoostValue;
 		break;
 	}
 	case eBoostChemicalBurnProtection:
 	{
-		m_fBoostChemicalBurnImmunity = B.fBoostValue;
+		m_fBoostChemicalBurnProtection = B.fBoostValue;
 		break;
 	}
 	default: NODEFAULT;
@@ -892,17 +892,17 @@ void CActorCondition::DisableBoostParameters(const SBooster& B)
 	}
 	case eBoostRadiationProtection:
 	{
-		m_fBoostRadiationImmunity = 0.0f;
+		m_fBoostRadiationProtection = 0.0f;
 		break;
 	}
 	case eBoostTelepaticProtection:
 	{
-		m_fBoostTelepaticImmunity = 0.0f;
+		m_fBoostTelepaticProtection = 0.0f;
 		break;
 	}
 	case eBoostChemicalBurnProtection:
 	{
-		m_fBoostChemicalBurnImmunity = 0.0f;
+		m_fBoostChemicalBurnProtection = 0.0f;
 		break;
 	}
 		default: NODEFAULT;	
@@ -1089,7 +1089,7 @@ bool CActorCondition::ApplyBooster(const SBooster& B, const shared_str& sect, bo
 		this_booster.fBoostValue = 0.0f;
 		DisableBoostParameters(this_booster);
 
-		this_booster = B;
+		m_booster_influences[B.m_type] = B;
 		BoostParameters(B);
 	}
 
@@ -1142,4 +1142,68 @@ void CActorDeathEffector::Stop()
 	m_death_sound.destroy	();
 	enable_input			();
 	show_indicators			();
+}
+
+float CActorCondition::GetHealthBoost()
+{
+	float total = 0.0f;
+
+	float satiety_health_koef = (Satiety.Current - Satiety.Critical) / (Satiety.Current >= Satiety.Critical ? 1 - Satiety.Critical : Satiety.Critical);
+	total += Satiety.HealthBoost * satiety_health_koef;
+
+	const static bool enableThirst = EngineExternal()[EEngineExternalGame::EnableThirst];
+	if (enableThirst)
+	{
+		float thirst_health_koef = (Thirst.Current - Thirst.Critical) / (Thirst.Current >= Thirst.Critical ? 1 - Thirst.Critical : Thirst.Critical);
+		total += Thirst.HealthBoost * thirst_health_koef;
+	}
+
+	const static bool enableSleepiness = EngineExternal()[EEngineExternalGame::EnableSleepiness];
+	if (enableSleepiness)
+	{
+		float SleepinessHealthKoef = ((1.f - Sleepiness.Current) - Sleepiness.Critical) / (Sleepiness.Current < Sleepiness.Critical ? 1 - Sleepiness.Critical : Sleepiness.Critical);
+		total += Sleepiness.HealthBoost * SleepinessHealthKoef;
+	}
+
+	//const static bool enableMedIntoxication = EngineExternal()[EEngineExternalGame::EnableMedIntoxication];
+	//if (enableMedIntoxication)
+	//{
+	//	const float denom = std::max(EPS, 1.0f - Intoxication.Critical);
+	//	const float excess = (Intoxication.Current - Intoxication.Critical) / denom;
+
+	//	// HP drains past critical; stronger past heavy / critical overdose tiers
+	//	float healthMul = 1.0f;
+	//	if (Intoxication.Current >= 0.7f)
+	//	{
+	//		healthMul = 1.5f;
+	//	}
+	//	if (Intoxication.Current > 0.9f)
+	//	{
+	//		healthMul = 2.5f;
+	//	}
+
+	//	total += Intoxication.HealthBoost * excess * healthMul;
+	//}
+
+	total += (m_change_v.m_fV_HealthRestore + m_fBoostHpRestore);
+
+	for (const PIItem item : object().inventory().m_belt)
+	{
+		if (CArtefact* artefact = item->cast_artefact())
+		{
+			float art_cond = artefact->GetCondition();
+			total += (artefact->m_fHealthRestoreSpeed * art_cond);
+		}
+	}
+
+	if (CCustomOutfit* outfit = object().GetOutfit())
+	{
+		total += outfit->m_fHealthRestoreSpeed;
+	}
+	if (CHelmet* helmet = object().GetHelmet())
+	{
+		total += helmet->m_fHealthRestoreSpeed;
+	}
+
+	return total;
 }

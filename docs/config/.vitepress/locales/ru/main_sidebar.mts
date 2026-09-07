@@ -6,6 +6,7 @@ export const mainSidebar: DefaultTheme.Sidebar = [
     collapsed: false,
     items: [
       { text: 'Установка', link: '/main/getting-started' },
+      { text: 'Coding Guidelines', link: '/main/coding-guidelines' },
       { text: 'Интеграции', link: '/main/integrations' },
       { text: 'Ключи запуска', link: '/main/launch-keys' },
       { text: 'Консольные команды', link: '/main/console-commands' },
@@ -103,6 +104,7 @@ export const mainSidebar: DefaultTheme.Sidebar = [
           { text: 'Состояние предмета и проценты', link: '/interface/item-condition-percent-display' },
           { text: 'Радиальные индикаторы', link: '/interface/radial-progress-shape' },
           { text: 'Прогресс бар веса', link: '/interface/weight-progress-bar' },
+          { text: 'Окно сна', link: '/interface/sleep-dialog' },
         ],
       },
     ],

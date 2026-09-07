@@ -87,10 +87,10 @@ void CWeaponMagazined::Load(LPCSTR section)
 	if (pSettings->line_exist(section, "fire_modes"))
 	{
 		shared_str FireModesList = pSettings->r_string(section, "fire_modes");
-		s8 ModesCount = _GetItemCount(FireModesList.c_str());
+		u8 ModesCount = _GetItemCount(FireModesList.c_str());
 		m_aFireModes.clear();
 
-		for (s8 i = 0; i < ModesCount; i++)
+		for (u8 i = 0; i < ModesCount; i++)
 		{
 			string16 sItem = {};
 			_GetItem(FireModesList.c_str(), i, sItem);
@@ -102,7 +102,7 @@ void CWeaponMagazined::Load(LPCSTR section)
 	else
 	{
 		m_aFireModes.push_back(1);
-		m_iCurFireMode = 1;
+		m_iCurFireMode = 0;
 	}
 
 	LoadSilencerKoeffs();
@@ -153,7 +153,7 @@ void CWeaponMagazined::LoadSounds(LPCSTR section)
 		m_layered_sounds.LoadSound(section, "snd_silencer_shot_last_actor", "sndSilencerShotLastActor", false, m_eSoundShot);
 	}
 
-	m_sounds.LoadSound(section, "snd_empty", "sndEmptyClick", false, m_eSoundEmptyClick);
+	m_sounds.LoadSound(section, "snd_empty", "sndEmptyClick", true, m_eSoundEmptyClick);
 	m_sounds.LoadSound(section, "snd_reload", "sndReload", true, m_eSoundReload);
 
 	if (SoundExist(section, "snd_reload_empty"))
@@ -408,6 +408,12 @@ void CWeaponMagazined::LoadSounds(LPCSTR section)
 	{
 		m_sounds.LoadSound(section, "snd_firemode_check", "sndFiremodeCheck", false, m_eSoundReload);
 	}
+
+	if (SoundExist(section, "snd_mag_shot"))
+	{
+		m_eSoundsFlags2.set(ESoundsFlags2::sf_mag_shot, true);
+		m_sounds.LoadSound(section, "snd_mag_shot", "sndMagShot", true, m_eSoundEmptyClick);
+	}
 }
 
 void CWeaponMagazined::FireStart()
@@ -432,7 +438,7 @@ void CWeaponMagazined::FireStart()
 				SwitchState(eFire);
 			}
 		}
-		else if (CurrentState == eIdle || CurrentState == eEmptyClick && !m_bBlockEmptyClick)
+		else if (!IsPending() && GetState() != eFire || CurrentState == eEmptyClick && !m_bBlockEmptyClick)
 		{
 			if (IsActor && m_eAnimationsFlags.test(EAnimationsFlags::af_empty_click))
 			{
@@ -444,7 +450,7 @@ void CWeaponMagazined::FireStart()
 			}
 		}
 	}
-	else if (CurrentState == eIdle || CurrentState == eEmptyClick && !m_bBlockEmptyClick)
+	else if (!IsPending() && GetState() != eFire || CurrentState == eEmptyClick && !m_bBlockEmptyClick)
 	{
 		if (parent != nullptr)
 		{
@@ -1331,16 +1337,19 @@ void CWeaponMagazined::SelectShotSound()
 
 	m_layered_sounds.PlaySound(m_sSndShotCurrent.c_str(), get_LastFP(), H_Parent(), !!GetHUDmode(), false, true);
 
-	float fAmmoElapsed = (float)get_elapsed;
-	float fmaxMagazineSize_ = GetMagCapacity() + iChamberSize;
-	float factor = fAmmoElapsed / (fmaxMagazineSize_ / 3.0f);
-	if (factor <= 1.0f)
+	if (m_eSoundsFlags2.test(ESoundsFlags2::sf_mag_shot))
 	{
-		clamp(factor, 0.0f, 1.0f);
-		factor = 1.0f - factor;
-		HUD_SOUND_ITEM::SetHudSndGlobalVolumeFactor(factor);
-		PlaySound("sndMagShot", get_LastFP());
-		HUD_SOUND_ITEM::SetHudSndGlobalVolumeFactor(1.0f);
+		float fAmmoElapsed = (float)get_elapsed;
+		float fmaxMagazineSize_ = GetMagCapacity() + iChamberSize;
+		float factor = fAmmoElapsed / (fmaxMagazineSize_ / 3.0f);
+		if (factor <= 1.0f)
+		{
+			clamp(factor, 0.0f, 1.0f);
+			factor = 1.0f - factor;
+			HUD_SOUND_ITEM::SetHudSndGlobalVolumeFactor(factor);
+			PlaySound("sndMagShot", get_LastFP());
+			HUD_SOUND_ITEM::SetHudSndGlobalVolumeFactor(1.0f);
+		}
 	}
 
 	if (m_eSoundsFlags.test(ESoundsFlags::sf_breechblock))
@@ -2467,11 +2476,7 @@ shared_str CWeaponMagazined::SetCurrentAimAnimation()
 		u32 state = actor->GetMovementState(ACTOR_DEFS::EMovementStates::eReal);
 		if (state & ACTOR_DEFS::EMoveCommand::mcAnyMove)
 		{
-			if (IsScopeAttached())
-			{
-				AddSuffixName(anim, "_scope", "_moving");
-			}
-			else
+			if (!IsScopeAttached() || !AddSuffixName(anim, "_scope", "_moving"))
 			{
 				AddSuffixName(anim, "_moving");
 			}
@@ -2709,7 +2714,7 @@ bool CWeaponMagazined::SwitchMode()
  
 void CWeaponMagazined::ChangeFireMode(u16 cmd)
 {
-	if (!HasFireModes() || GetState() != eIdle)
+	if (!HasFireModes() || GetNextState() != eIdle)
 	{
 		return;
 	}
@@ -2731,13 +2736,15 @@ void CWeaponMagazined::ChangeFireMode(u16 cmd)
 
 	m_iPrevFireMode = GetQueueSize();
 
+	const u8 modes_count = static_cast<u8>(m_aFireModes.size());
+
 	if (cmd == kWPN_FIREMODE_NEXT)
 	{
-		m_iCurFireMode = (m_iCurFireMode + 1 + m_aFireModes.size()) % (s8)m_aFireModes.size();
+		m_iCurFireMode = (m_iCurFireMode + 1) % modes_count;
 	}
 	else
 	{
-		m_iCurFireMode = (m_iCurFireMode - 1 + m_aFireModes.size()) % (s8)m_aFireModes.size();
+		m_iCurFireMode = (m_iCurFireMode + modes_count - 1) % modes_count;
 	}
 
 	SetQueueSize(GetCurrentFireMode());
@@ -3069,7 +3076,7 @@ void CWeaponMagazined::OnMotionMark(u32 state, const motion_marks& mark)
 {
 	inherited::OnMotionMark(state, mark);
 
-	if (ParentIsActor() && !m_bTriStateReload && state == eReload && mark.name == "Right" && !m_bIsReloaded)
+	if (ParentIsActor() && (!m_bTriStateReload || bMisfire) && state == eReload && mark.name == "Right" && !m_bIsReloaded)
 	{
 		m_bIsReloaded = true;
 		bool grenade_mode = IsGrenadeMode();
