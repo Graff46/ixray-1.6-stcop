@@ -58,7 +58,7 @@ struct SSpecificCharacterData : CSharedResource
 	//начальный диалог
 	shared_str					m_StartDialog;
 	//диалоги актера, которые будут доступны только при встрече с данным персонажем
-	DIALOG_ID_VECTOR			m_ActorDialogs;
+	mutable DIALOG_ID_VECTOR	m_ActorDialogs;
 
 	shared_str					m_saved_icon_name;
 	shared_str					m_prev_icon_name;
@@ -159,6 +159,7 @@ public:
 	int							crouch_type				() const ;
 	bool						upgrade_mechanic		() const ;
 	LPCSTR						critical_wound_weights	() const ;
+	const void					addActorDialog			(LPCSTR dialog_name) const {data()->m_ActorDialogs.push_back(dialog_name);}
 
 	const shared_str&			IconName				() const	{return data()->m_icon_name;};
 #endif

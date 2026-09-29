@@ -129,6 +129,19 @@ void CAI_Stalker::reinit			()
 
 	LoadSounds						(*cNameSect());
 
+	if (pSettings->line_exist(cNameSect(), "actor_dialog"))
+	{
+		LPCSTR ad = pSettings->r_string(cNameSect(), "actor_dialog");
+		u8 cnt = _GetItemCount( ad );
+		string256 pt;
+
+		for (u32 k = 0; k < cnt; ++k)
+		{
+			_GetItem(ad, k, pt);
+			SpecificCharacter().addActorDialog(pt);
+		}
+	}
+
 	m_pPhysics_support->in_Init		();
 	
 	m_best_item_to_kill				= 0;
